@@ -77,6 +77,7 @@ async function sendTextMessage(to, text) {
     }
   );
 
+  // Registrar mensaje del bot
   if (!conversations[to]) conversations[to] = { responses: [] };
   conversations[to].responses.push({
     from: 'bot',
@@ -85,7 +86,22 @@ async function sendTextMessage(to, text) {
   });
 }
 
-// Webhook para recibir mensajes
+// Ruta /webhook - Verificación de Meta
+app.get('/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode && token && mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
+    console.log("✅ Webhook verificado");
+    res.status(200).send(challenge);
+  } else {
+    console.log("❌ Token de verificación inválido");
+    res.sendStatus(403);
+  }
+});
+
+// Ruta /webhook - Recepción de mensajes de WhatsApp
 app.post('/webhook', async (req, res) => {
   const body = req.body;
 
@@ -247,22 +263,34 @@ app.post('/webhook', async (req, res) => {
 
         user.contact = contactMatch;
 
-        // Si dice "sí, por favor", pasamos al modo manual
-        if (contactMatch === 'sí, por favor') {
-          await sendTextMessage(
+        // Enviar datos a Google Sheets vía Apps Script
+        try {
+          await axios.post(process.env.APPS_SCRIPT_URL, {
             from,
-            "✅ Un asesor se pondrá en contacto contigo ahora mismo."
-          );
+            name: user.name,
+            district: user.district,
+            propertyType: user.propertyType,
+            area: user.area,
+            service: user.service,
+            serviceType: user.serviceType,
+            contact: user.contact
+          });
 
-          // Notificar al asesor
-          console.log(`📢 Cliente ${from} requiere asesor`);
-        } else {
+          console.log("✅ Datos guardados en Google Sheets");
+
           await sendTextMessage(
             from,
             "✅ ¡Gracias por su solicitud!\n\nNos pondremos en contacto en el menor tiempo posible."
           );
 
           delete userData[from]; // Limpiar datos
+
+        } catch (err) {
+          console.error("🚨 Error al guardar en Sheets:", err.message);
+          await sendTextMessage(
+            from,
+            "⚠️ Hubo un error guardando sus datos. Por favor, inténtelo más tarde."
+          );
         }
 
         break;
@@ -275,20 +303,23 @@ app.post('/webhook', async (req, res) => {
   res.sendStatus(200);
 });
 
-// Ruta /monitor - Muestra conversaciones tipo WhatsApp Web
+// Ruta /monitor - Muestra conversaciones en estilo WhatsApp Web
 app.get('/monitor', (req, res) => {
   let html = `
     <html>
       <head>
-        <title>📲 Monitor de Conversaciones</title>
+        <title>📲 Monitor de Chatbot</title>
         <meta http-equiv="refresh" content="10">
         <style>
           body { font-family: Arial; background: #000; color: white; padding: 20px; }
           .chat-container { margin-bottom: 20px; }
           .message { display: flex; align-items: flex-start; margin: 5px 0; }
-          .bubble-client { background: #373A3C; color: white; border-radius: 10px; padding: 10px; max-width: 80%; margin: 5px 0; float: left; clear: both; }
-          .bubble-bot { background: #25D366; color: white; border-radius: 10px; padding: 10px; max-width: 80%; margin: 5px 0; float: right; clear: both; }
-          .timestamp { font-size: 0.8em; color: gray; margin-left: 10px; }
+          .bubble-client { background: #373A3C; color: white; border-radius: 10px; padding: 10px; max-width: 80%; float: left; clear: both; }
+          .bubble-bot { background: #25D366; color: white; border-radius: 10px; padding: 10px; max-width: 80%; float: right; clear: both; }
+          .timestamp { font-size: 0.7em; color: gray; margin-left: 10px; }
+          .input-area { margin-top: 10px; display: flex; gap: 10px; }
+          input[type=text], textarea { padding: 10px; width: 100%; max-width: 400px; }
+          button { padding: 10px 15px; background: #25D366; color: white; border: none; border-radius: 5px; cursor: pointer; }
         </style>
       </head>
       <body>
@@ -297,6 +328,7 @@ app.get('/monitor', (req, res) => {
 
   for (const from in conversations) {
     const chat = conversations[from];
+
     html += `<div class="chat-container"><strong>${from}</strong><br>`;
     chat.responses.forEach(msg => {
       const time = msg.timestamp.toLocaleTimeString();
@@ -318,11 +350,57 @@ app.get('/monitor', (req, res) => {
       }
     });
 
-    html += '</div>';
+    html += `
+        <form class="input-area" action="/api/send" method="POST">
+          <input type="hidden" name="to" value="${from}">
+          <input type="text" name="message" placeholder="Escribe tu mensaje...">
+          <button type="submit">Enviar</button>
+        </form>
+      </div>
+    `;
   }
 
   html += '</body></html>';
   res.send(html);
+});
+
+// Ruta para enviar mensajes manuales desde el panel web
+app.post('/api/send', async (req, res) => {
+  const { to, message } = req.body;
+
+  if (!to || !message) {
+    return res.status(400).send("Faltan datos");
+  }
+
+  try {
+    await axios.post(
+      `https://graph.facebook.com/v22.0/${process.env.PHONE_NUMBER_ID}/messages`, 
+      {
+        messaging_product: "whatsapp",
+        to,
+        text: { body: message },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`
+        }
+      }
+    );
+
+    // Guardar mensaje del asesor
+    if (!conversations[to]) conversations[to] = { responses: [] };
+    conversations[to].responses.push({
+      from: 'bot',
+      text: message,
+      timestamp: new Date()
+    });
+
+    res.redirect('/monitor');
+
+  } catch (err) {
+    console.error("🚨 Error al enviar mensaje:", err.message);
+    res.send("Hubo un error");
+  }
 });
 
 // Puerto dinámico
