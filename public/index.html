@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>📲 Monitor de Chatbot</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #1e1e1e;
+      color: white;
+      display: flex;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 300px;
+      background: #2a2a2a;
+      border-right: 1px solid #444;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .chat-list-item {
+      padding: 10px;
+      border-bottom: 1px solid #555;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .chat-list-item:hover {
+      background: #3a3a3a;
+    }
+
+    .chat-header {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .online-dot {
+      width: 10px;
+      height: 10px;
+      background: green;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 10px;
+    }
+
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      background: #111;
+    }
+
+    #chatBox {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .message {
+      max-width: 70%;
+      margin: 10px 0;
+      clear: both;
+    }
+
+    .bubble-client {
+      background: #373A3C;
+      color: white;
+      padding: 10px;
+      border-radius: 10px;
+      float: left;
+    }
+
+    .bubble-bot {
+      background: #25D366;
+      color: white;
+      padding: 10px;
+      border-radius: 10px;
+      float: right;
+    }
+
+    .timestamp {
+      font-size: 0.7em;
+      color: gray;
+      margin-top: 5px;
+    }
+
+    form {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    input[type="text"] {
+      padding: 10px;
+      flex: 1;
+      border: none;
+      border-radius: 5px;
+      background: #2a2a2a;
+      color: white;
+    }
+
+    button {
+      padding: 10px 15px;
+      background: #25D366;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar" id="chats"></div>
+  <div class="chat-area" style="display:none" id="chatArea">
+    <div class="chat-header" id="chatHeader">Cliente: ...</div>
+    <div id="chatBox"></div>
+    <form id="chatForm">
+      <input type="text" id="messageInput" placeholder="Escribe tu mensaje..." required />
+      <button type="submit">Enviar</button>
+    </form>
+  </div>
+
+  <script>
+    async function loadChats() {
+      const res = await fetch("/api/chats");
+      const chats = await res.json();
+
+      const sidebar = document.getElementById("chats");
+      sidebar.innerHTML = "";
+
+      Object.keys(chats).forEach((from) => {
+        const lastMsg = chats[from].responses[chats[from].responses.length - 1]?.text || "Nuevo chat";
+        const item = document.createElement("div");
+        item.className = "chat-list-item";
+        item.innerHTML = `<span class="online-dot"></span><strong>${from}</strong><br><small>${lastMsg}</small>`;
+        item.onclick = () => openChat(from);
+        sidebar.appendChild(item);
+      });
+    }
+
+    async function openChat(from) {
+      const chatArea = document.querySelector(".chat-area");
+      chatArea.style.display = "flex";
+
+      const chatBox = document.getElementById("chatBox");
+      chatBox.innerHTML = "";
+
+      const res = await fetch(`/api/chat/${from}`);
+      const chat = await res.json();
+
+      document.getElementById("chatHeader").innerText = `Chat con ${from}`;
+
+      chat.responses.forEach(msg => {
+        const div = document.createElement("div");
+        div.className = "message " + (msg.from === "cliente" ? "bubble-client" : "bubble-bot");
+        div.innerHTML = msg.text + "<br><small>" + new Date(msg.timestamp).toLocaleTimeString() + "</small>";
+        chatBox.appendChild(div);
+      });
+
+      // Enfocar campo de mensaje
+      document.getElementById("messageInput").focus();
+      document.getElementById("messageInput").onkeydown = async (e) => {
+        if (e.key === 'Enter') {
+          const message = document.getElementById("messageInput").value;
+          if (!message.trim()) return;
+
+          await fetch("/api/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ to: from, message })
+          });
+
+          document.getElementById("messageInput").value = "";
+          openChat(from); // Recargar conversación
+        }
+      };
+
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    setInterval(loadChats, 10000);
+    window.onload = loadChats;
+  </script>
+</body>
+</html>
