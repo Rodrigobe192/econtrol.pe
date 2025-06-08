@@ -115,7 +115,16 @@
   </style>
 </head>
 <body>
-  <div class="sidebar" id="chats"></div>
+  <div class="sidebar" id="chats">
+    <header>
+      <img src="https://via.placeholder.com/30x30"  alt="Profile" style="width: 30px; height: 30px;">
+      <input type="text" placeholder="Ingresar Filtro y Enter" onkeyup="filterChats(this.value)">
+      <button onclick="addNewNumber()">+ Agregar Número</button>
+    </header>
+
+    <ul id="chatList"></ul>
+  </div>
+
   <div class="chat-area" style="display:none" id="chatArea">
     <div class="chat-header" id="chatHeader">Cliente: ...</div>
     <div id="chatBox"></div>
@@ -130,16 +139,16 @@
       const res = await fetch("/api/chats");
       const chats = await res.json();
 
-      const sidebar = document.getElementById("chats");
-      sidebar.innerHTML = "";
+      const chatList = document.getElementById("chatList");
+      chatList.innerHTML = "";
 
       Object.keys(chats).forEach((from) => {
         const lastMsg = chats[from].responses[chats[from].responses.length - 1]?.text || "Nuevo chat";
-        const item = document.createElement("div");
+        const item = document.createElement("li");
         item.className = "chat-list-item";
         item.innerHTML = `<span class="online-dot"></span><strong>${from}</strong><br><small>${lastMsg}</small>`;
         item.onclick = () => openChat(from);
-        sidebar.appendChild(item);
+        chatList.appendChild(item);
       });
     }
 
@@ -185,6 +194,29 @@
 
     setInterval(loadChats, 10000);
     window.onload = loadChats;
+
+    function filterChats(filterText) {
+      const chatList = document.getElementById("chatList");
+      const items = chatList.getElementsByTagName("li");
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const text = item.textContent.toLowerCase();
+        if (text.includes(filterText.toLowerCase())) {
+          item.style.display = "";
+        } else {
+          item.style.display = "none";
+        }
+      }
+    }
+
+    function addNewNumber() {
+      const number = prompt("Ingrese el número del cliente:");
+      if (number) {
+        // Aquí puedes implementar lógica para agregar manualmente un número
+        console.log(`Número agregado: ${number}`);
+      }
+    }
   </script>
 </body>
 </html>
