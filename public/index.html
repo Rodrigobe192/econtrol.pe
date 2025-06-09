@@ -4,137 +4,186 @@
   <meta charset="UTF-8" />
   <title>📲 Monitor de Chatbot</title>
   <style>
-    body {
+    * {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #1e1e1e;
-      color: white;
-      display: flex;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #ece5dd;
+      color: #000;
       height: 100vh;
+      display: flex;
+      overflow: hidden;
     }
 
     .sidebar {
       width: 300px;
-      background: #2a2a2a;
-      border-right: 1px solid #444;
-      padding: 20px;
-      overflow-y: auto;
+      background-color: #25D366;
+      color: white;
+      display: flex;
+      flex-direction: column;
     }
 
-    .chat-list-item {
+    .chat-list {
+      flex: 1;
+      overflow-y: auto;
       padding: 10px;
-      border-bottom: 1px solid #555;
+      background-color: #d9dede;
+    }
+
+    .chat-item {
+      background-color: #f0f0f0;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
       cursor: pointer;
       transition: background 0.2s;
     }
 
-    .chat-list-item:hover {
-      background: #3a3a3a;
+    .chat-item:hover {
+      background-color: #e9edef;
     }
 
     .chat-header {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      background-color: #128c7e;
       font-weight: bold;
-      margin-bottom: 10px;
     }
 
-    .online-dot {
-      width: 10px;
-      height: 10px;
-      background: green;
+    .chat-header img {
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
-      display: inline-block;
       margin-right: 10px;
     }
 
-    .chat-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 20px;
-      background: #111;
-    }
-
-    #chatBox {
+    .chat-messages {
       flex: 1;
       overflow-y: auto;
+      padding: 20px;
+      background-color: #ece5dd;
       display: flex;
       flex-direction: column;
+      gap: 10px;
     }
 
     .message {
       max-width: 70%;
-      margin: 10px 0;
+      padding: 10px 15px;
+      border-radius: 10px;
       clear: both;
     }
 
-    .bubble-client {
-      background: #373A3C;
-      color: white;
-      padding: 10px;
-      border-radius: 10px;
+    .from-client {
       float: left;
+      background-color: #ffffff;
+      color: black;
+      border-top-right-radius: 10px;
+      border-bottom-right-radius: 10px;
+      margin-left: 10px;
     }
 
-    .bubble-bot {
-      background: #25D366;
-      color: white;
-      padding: 10px;
-      border-radius: 10px;
+    .from-bot {
       float: right;
+      background-color: #dcf8c6;
+      color: black;
+      border-top-left-radius: 10px;
+      border-bottom-left-radius: 10px;
+      margin-right: 10px;
     }
 
     .timestamp {
       font-size: 0.7em;
       color: gray;
       margin-top: 5px;
+      clear: both;
+      text-align: right;
     }
 
-    form {
+    .input-area {
       display: flex;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    input[type="text"] {
       padding: 10px;
-      flex: 1;
-      border: none;
-      border-radius: 5px;
-      background: #2a2a2a;
-      color: white;
+      background-color: #d9dede;
+      border-top: 1px solid #ccc;
     }
 
-    button {
-      padding: 10px 15px;
-      background: #25D366;
+    .input-area input[type="text"] {
+      flex: 1;
+      padding: 10px;
       border: none;
       border-radius: 5px;
+      margin-right: 10px;
+      font-size: 1em;
+    }
+
+    .input-area button {
+      padding: 10px 20px;
+      background-color: #25D366;
       color: white;
+      border: none;
+      border-radius: 5px;
       cursor: pointer;
+    }
+
+    .selected-chat {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      flex: 1;
+    }
+
+    .chat-header {
+      background-color: #128c7e;
+      color: white;
+      padding: 10px 16px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+    }
+
+    .chat-header img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 10px;
     }
   </style>
 </head>
 <body>
-  <div class="sidebar" id="chats">
-    <header>
-      <img src="https://via.placeholder.com/30x30"  alt="Profile" style="width: 30px; height: 30px;">
-      <input type="text" placeholder="Ingresar Filtro y Enter" onkeyup="filterChats(this.value)">
-      <button onclick="addNewNumber()">+ Agregar Número</button>
-    </header>
+  <!-- Barra lateral -->
+  <div class="sidebar">
+    <div class="chat-header">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"  alt="Logo">
+      <span>Econtrol Bot</span>
+    </div>
 
-    <ul id="chatList"></ul>
+    <div class="chat-list" id="chatList"></div>
   </div>
 
-  <div class="chat-area" style="display:none" id="chatArea">
-    <div class="chat-header" id="chatHeader">Cliente: ...</div>
-    <div id="chatBox"></div>
-    <form id="chatForm">
+  <!-- Área de chat seleccionado -->
+  <div class="selected-chat">
+    <div class="chat-header" id="chatHeader">
+      <img src="https://via.placeholder.com/40"  alt="Perfil">
+      <span id="chatName">Selecciona un chat</span>
+    </div>
+
+    <div class="chat-messages" id="chatBox"></div>
+
+    <form class="input-area" id="chatForm">
       <input type="text" id="messageInput" placeholder="Escribe tu mensaje..." required />
       <button type="submit">Enviar</button>
     </form>
   </div>
 
   <script>
+    let currentChat = null;
+
+    // Cargar lista de clientes
     async function loadChats() {
       const res = await fetch("/api/chats");
       const chats = await res.json();
@@ -143,18 +192,22 @@
       chatList.innerHTML = "";
 
       Object.keys(chats).forEach((from) => {
-        const lastMsg = chats[from].responses[chats[from].responses.length - 1]?.text || "Nuevo chat";
-        const item = document.createElement("li");
-        item.className = "chat-list-item";
-        item.innerHTML = `<span class="online-dot"></span><strong>${from}</strong><br><small>${lastMsg}</small>`;
+        const lastMsg = chats[from].responses[chats[from].responses.length - 1]?.text || "Nuevo cliente";
+        const item = document.createElement("div");
+        item.className = "chat-item";
+        item.innerHTML = `
+          <img src="https://via.placeholder.com/40"  alt="Perfil" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
+          <strong>${from}</strong><br>
+          <small>${lastMsg}</small>
+        `;
         item.onclick = () => openChat(from);
         chatList.appendChild(item);
       });
     }
 
+    // Abrir conversación
     async function openChat(from) {
-      const chatArea = document.querySelector(".chat-area");
-      chatArea.style.display = "flex";
+      currentChat = from;
 
       const chatBox = document.getElementById("chatBox");
       chatBox.innerHTML = "";
@@ -162,61 +215,41 @@
       const res = await fetch(`/api/chat/${from}`);
       const chat = await res.json();
 
-      document.getElementById("chatHeader").innerText = `Chat con ${from}`;
+      document.getElementById("chatName").innerText = from;
 
       chat.responses.forEach(msg => {
-        const div = document.createElement("div");
-        div.className = "message " + (msg.from === "cliente" ? "bubble-client" : "bubble-bot");
-        div.innerHTML = msg.text + "<br><small>" + new Date(msg.timestamp).toLocaleTimeString() + "</small>";
-        chatBox.appendChild(div);
+        const msgDiv = document.createElement("div");
+        msgDiv.className = msg.from === "cliente" ? "message from-client" : "message from-bot";
+        msgDiv.innerText = msg.text;
+        chatBox.appendChild(msgDiv);
+
+        const time = document.createElement("div");
+        time.className = "timestamp";
+        time.innerText = new Date(msg.timestamp).toLocaleTimeString();
+        chatBox.appendChild(time);
       });
-
-      // Enfocar campo de mensaje
-      document.getElementById("messageInput").focus();
-      document.getElementById("messageInput").onkeydown = async (e) => {
-        if (e.key === 'Enter') {
-          const message = document.getElementById("messageInput").value;
-          if (!message.trim()) return;
-
-          await fetch("/api/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ to: from, message })
-          });
-
-          document.getElementById("messageInput").value = "";
-          openChat(from); // Recargar conversación
-        }
-      };
 
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
+    // Enviar mensaje desde asesor
+    document.getElementById("chatForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const message = document.getElementById("messageInput").value.trim();
+      if (!message || !currentChat) return;
+
+      await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: currentChat, message })
+      });
+
+      document.getElementById("messageInput").value = "";
+      openChat(currentChat);
+    };
+
     setInterval(loadChats, 10000);
     window.onload = loadChats;
-
-    function filterChats(filterText) {
-      const chatList = document.getElementById("chatList");
-      const items = chatList.getElementsByTagName("li");
-
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        const text = item.textContent.toLowerCase();
-        if (text.includes(filterText.toLowerCase())) {
-          item.style.display = "";
-        } else {
-          item.style.display = "none";
-        }
-      }
-    }
-
-    function addNewNumber() {
-      const number = prompt("Ingrese el número del cliente:");
-      if (number) {
-        // Aquí puedes implementar lógica para agregar manualmente un número
-        console.log(`Número agregado: ${number}`);
-      }
-    }
   </script>
 </body>
 </html>
