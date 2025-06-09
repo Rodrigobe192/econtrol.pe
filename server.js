@@ -364,20 +364,34 @@ app.get('/monitor', (req, res) => {
   html += '</body></html>';
   res.send(html);
 });
+    // Campo para responder manualmente
+    html += `
+        <form class="input-area" action="/api/send" method="POST">
+          <input type="hidden" name="to" value="${from}">
+          <input type="text" name="message" placeholder="Escribe tu mensaje...">
+          <button type="submit">Enviar</button>
+        </form>
+      </div>
+    `;
+  }
 
-// Ruta para cargar todos los chats
+  html += '</body></html>';
+  res.send(html);
+});
+
+// Ruta para obtener todos los chats
 app.get('/api/chats', (req, res) => {
   res.send(conversations);
 });
 
-// Ruta para cargar un chat específico
+// Ruta para obtener un chat específico
 app.get('/api/chat/:from', (req, res) => {
   const from = req.params.from;
   res.send(conversations[from] || { responses: [] });
 });
 
 // Ruta para enviar mensajes desde el asesor
-app.post('/api/send', express.json(), async (req, res) => {
+app.post('/api/send', async (req, res) => {
   const { to, message } = req.body;
 
   if (!to || !message) return res.status(400).send("Faltan datos");
