@@ -2,8 +2,12 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
+const cors = require('cors'); // ✅ Añadimos CORS
 
 const app = express();
+
+// ✅ Middleware
+app.use(cors()); // ✅ Habilitamos CORS para todas las rutas
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public')); // Carpeta donde estarán tus archivos HTML/CSS/JS
@@ -82,11 +86,11 @@ async function sendTextMessage(to, text) {
   conversations[to].responses.push({
     from: 'bot',
     text: text,
-    timestamp: new Date()
+    timestamp: new Date() // ✅ Corrección: new Date(), no new.Date()
   });
 }
 
-// Ruta /webhook - Verificación de Meta
+// Webhook de verificación
 app.get('/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
@@ -101,7 +105,7 @@ app.get('/webhook', (req, res) => {
   }
 });
 
-// Ruta /webhook - Recepción de mensajes de WhatsApp
+// Webhook para recibir mensajes
 app.post('/webhook', async (req, res) => {
   const body = req.body;
 
@@ -302,8 +306,7 @@ app.post('/webhook', async (req, res) => {
 
   res.sendStatus(200);
 });
-
-// Ruta /monitor - Muestra el historial de conversaciones y permite responder
+// Ruta /monitor - Página principal del monitor web
 app.get('/monitor', (req, res) => {
   let html = `
     <html>
@@ -328,14 +331,11 @@ app.get('/monitor', (req, res) => {
 
   for (const from in conversations) {
     const chat = conversations[from];
-    html += `
-      <div class="chat-container">
-        <div class="chat-header">Cliente: ${from}</div>
-    `;
+    html += `<div class="chat-container"><strong>${from}</strong><br>`;
     chat.responses.forEach(msg => {
       const time = msg.timestamp.toLocaleTimeString();
 
-      if (msg.from === 'cliente') {
+      if (msg.from === "cliente") {
         html += `
           <div style="clear:both;">
             <div class="bubble-client">${msg.text}</div>
@@ -377,7 +377,7 @@ app.get('/api/chat/:from', (req, res) => {
   res.send(conversations[from] || { responses: [] });
 });
 
-// Ruta para enviar mensajes desde el asesor
+// Ruta para enviar mensajes manuales desde el panel
 app.post('/api/send', express.json(), async (req, res) => {
   const { to, message } = req.body;
 
