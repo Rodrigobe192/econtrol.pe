@@ -6,7 +6,7 @@ const axios = require('axios');
 const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static('public'));
+app.use(express.static('public')); // Carpeta donde estarán tus archivos HTML/CSS/JS
 
 // Estados del bot
 const STATE = {
@@ -276,7 +276,7 @@ app.post('/webhook', async (req, res) => {
             contact: user.contact
           });
 
-          console.log("✅ Datos guardados en Google Sheets");
+          console.log("✅ Datos enviados a Google Sheets");
 
           await sendTextMessage(
             from,
@@ -334,6 +334,7 @@ app.get('/monitor', (req, res) => {
     `;
     chat.responses.forEach(msg => {
       const time = msg.timestamp.toLocaleTimeString();
+
       if (msg.from === 'cliente') {
         html += `
           <div style="clear:both;">
@@ -350,21 +351,7 @@ app.get('/monitor', (req, res) => {
         `;
       }
     });
-    // Campo para responder manualmente
-    html += `
-        <form class="input-area" action="/api/send" method="POST">
-          <input type="hidden" name="to" value="${from}">
-          <input type="text" name="message" placeholder="Escribe tu mensaje...">
-          <button type="submit">Enviar</button>
-        </form>
-      </div>
-    `;
-  }
 
-  html += '</body></html>';
-  res.send(html);
-});
-    // Campo para responder manualmente
     html += `
         <form class="input-area" action="/api/send" method="POST">
           <input type="hidden" name="to" value="${from}">
@@ -391,7 +378,7 @@ app.get('/api/chat/:from', (req, res) => {
 });
 
 // Ruta para enviar mensajes desde el asesor
-app.post('/api/send', async (req, res) => {
+app.post('/api/send', express.json(), async (req, res) => {
   const { to, message } = req.body;
 
   if (!to || !message) return res.status(400).send("Faltan datos");
