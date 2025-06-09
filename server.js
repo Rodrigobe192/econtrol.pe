@@ -365,13 +365,22 @@ app.get('/monitor', (req, res) => {
   res.send(html);
 });
 
-// Ruta para enviar mensajes manuales desde el panel web
-app.post('/api/send', async (req, res) => {
+// Ruta para cargar todos los chats
+app.get('/api/chats', (req, res) => {
+  res.send(conversations);
+});
+
+// Ruta para cargar un chat específico
+app.get('/api/chat/:from', (req, res) => {
+  const from = req.params.from;
+  res.send(conversations[from] || { responses: [] });
+});
+
+// Ruta para enviar mensajes desde el asesor
+app.post('/api/send', express.json(), async (req, res) => {
   const { to, message } = req.body;
 
-  if (!to || !message) {
-    return res.status(400).send("Faltan datos");
-  }
+  if (!to || !message) return res.status(400).send("Faltan datos");
 
   try {
     await axios.post(
@@ -396,11 +405,10 @@ app.post('/api/send', async (req, res) => {
       timestamp: new Date()
     });
 
-    res.redirect('/monitor');
-
+    res.send({ status: "ok" });
   } catch (err) {
     console.error("🚨 Error al enviar mensaje:", err.message);
-    res.send("Hubo un error");
+    res.send({ status: "error", error: err.message });
   }
 });
 
