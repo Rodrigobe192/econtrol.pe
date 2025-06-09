@@ -303,19 +303,19 @@ app.post('/webhook', async (req, res) => {
   res.sendStatus(200);
 });
 
-// Ruta /monitor - Muestra conversaciones en estilo WhatsApp Web
+// Ruta /monitor - Muestra el historial de conversaciones y permite responder
 app.get('/monitor', (req, res) => {
   let html = `
     <html>
       <head>
-        <title>📲 Monitor de Chatbot</title>
+        <title>📲 Monitor de Conversaciones</title>
         <meta http-equiv="refresh" content="10">
         <style>
           body { font-family: Arial; background: #000; color: white; padding: 20px; }
-          .chat-container { margin-bottom: 20px; }
-          .message { display: flex; align-items: flex-start; margin: 5px 0; }
-          .bubble-client { background: #373A3C; color: white; border-radius: 10px; padding: 10px; max-width: 80%; float: left; clear: both; }
-          .bubble-bot { background: #25D366; color: white; border-radius: 10px; padding: 10px; max-width: 80%; float: right; clear: both; }
+          .chat-container { display: flex; flex-direction: column; max-width: 600px; margin-bottom: 30px; }
+          .chat-header { font-weight: bold; margin-top: 20px; }
+          .bubble-client { background: #373A3C; color: white; border-radius: 10px; padding: 10px; width: auto; max-width: 80%; margin: 5px 0; float: left; clear: both; }
+          .bubble-bot { background: #25D366; color: white; border-radius: 10px; padding: 10px; max-width: 80%; margin: 5px 0; float: right; clear: both; }
           .timestamp { font-size: 0.7em; color: gray; margin-left: 10px; }
           .input-area { margin-top: 10px; display: flex; gap: 10px; }
           input[type=text], textarea { padding: 10px; width: 100%; max-width: 400px; }
@@ -328,11 +328,12 @@ app.get('/monitor', (req, res) => {
 
   for (const from in conversations) {
     const chat = conversations[from];
-
-    html += `<div class="chat-container"><strong>${from}</strong><br>`;
+    html += `
+      <div class="chat-container">
+        <div class="chat-header">Cliente: ${from}</div>
+    `;
     chat.responses.forEach(msg => {
       const time = msg.timestamp.toLocaleTimeString();
-
       if (msg.from === 'cliente') {
         html += `
           <div style="clear:both;">
@@ -349,7 +350,7 @@ app.get('/monitor', (req, res) => {
         `;
       }
     });
-
+    // Campo para responder manualmente
     html += `
         <form class="input-area" action="/api/send" method="POST">
           <input type="hidden" name="to" value="${from}">
